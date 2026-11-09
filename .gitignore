@@ -1,0 +1,9 @@
+node_modules
+.next
+.env
+prisma/*.db
+prisma/*.db-journal
+test-results
+playwright-report
+next-env.d.ts
+*.tsbuildinfo
