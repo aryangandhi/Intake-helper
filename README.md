@@ -98,3 +98,13 @@ First time only, Playwright needs a browser: `npx playwright install chromium`. 
 ## Tech
 
 Next.js 15 (App Router) with TypeScript and Tailwind CSS, Prisma with SQLite, the OpenAI SDK pointed at OpenRouter, zod, Vitest and Playwright.
+
+## Hosting it for free (Render)
+
+1. Sign in at https://render.com with GitHub.
+2. **New > Blueprint**, pick the `Intake-helper` repo, and paste your OpenRouter key when asked.
+3. Render builds the app and gives you a link like `https://intake-helper.onrender.com`.
+
+The free plan sleeps after about 15 minutes with no visitors (the first visit then takes about a minute)
+and restarts with fresh demo data each time it wakes. Settings live in `render.yaml`.
+Set a monthly spending limit on your OpenRouter key, since anyone with the link can trigger AI calls.

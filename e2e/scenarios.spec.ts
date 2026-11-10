@@ -76,7 +76,9 @@ test("Scenario 1: patient completes the form online, oncologist reviews it", asy
   await mcc.locator("#in-med_list-0-frequency").fill("twice a day");
   await mcc.getByRole("button", { name: "Next →" }).click();
 
-  await mcc.locator("#in-mh_conditions").fill("Type 2 diabetes since 2015.");
+  await mcc.locator("#q-mh_has").getByRole("radio", { name: "Yes" }).check();
+  await mcc.getByRole("checkbox", { name: "Diabetes" }).check(); // follow-up list appears after "Yes"
+  await mcc.locator("#in-mh_details").fill("Type 2 diabetes since 2015.");
   // Skip the rest to test incomplete handling: jump to review via step list
   await mcc.getByRole("button", { name: "Review and send" }).click();
   await expect(mcc.getByText(/questions are not answered yet/)).toBeVisible();
@@ -208,4 +210,37 @@ test("Demo reset restores seed data", async ({ page }) => {
   await page.getByLabel("Demo settings").click();
   await page.getByRole("button", { name: "Reset demo data" }).click();
   await expect(page.getByText("Demo data has been reset.")).toBeVisible();
+});
+
+test("Scenario 4: demo shortcuts (random fill on both forms, info button, copy all points)", async ({ page, context }) => {
+  // Email button signs the patient in with a relative redirect (works through a tunnel / other laptop).
+  const res = await page.request.get("/myconnectedcare/open?ref=missing", { maxRedirects: 0 });
+  expect(res.status()).toBe(307);
+  expect(res.headers()["location"]).toBe("/myconnectedcare/login");
+
+  await page.goto("/inbox");
+  await loginWith(page, "jane.doe@example.com");
+  await page.getByRole("link", { name: /Action needed/ }).click();
+  const mcc = await openFromEmail(context, page, /Open MyConnectedCare/);
+  await mcc.getByRole("link", { name: /Questionnaires/ }).click();
+  await mcc.getByRole("link", { name: "Start Intake Form" }).click();
+  await mcc.waitForLoadState("networkidle");
+  await mcc.getByRole("button", { name: "Demo: fill in randomly" }).click();
+  await expect(mcc.getByRole("heading", { name: "Review and send" })).toBeVisible();
+  await expect(mcc.getByText("You have answered every question.")).toBeVisible();
+  await mcc.getByRole("button", { name: "Planning ahead" }).click();
+  await mcc.getByRole("button", { name: /What does this mean\?/ }).click();
+  await expect(mcc.locator("#info-acp_has")).toContainText("advance care plan is a record of your wishes");
+  await mcc.getByRole("button", { name: "Review and send" }).click();
+  await mcc.getByRole("button", { name: "Send to my care team" }).click();
+  await expect(mcc.getByRole("heading", { name: "Thank you, your intake form has been sent to your care team." })).toBeVisible();
+
+  const emr = await context.newPage();
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await oncologistOpensLatestIntake(emr, "Doe, Jane");
+  await expect(emr.getByText("AI Summary (point form)")).toBeVisible({ timeout: 30_000 });
+  await emr.getByRole("button", { name: "Copy all points" }).click();
+  const copied = await emr.evaluate(() => navigator.clipboard.readText());
+  expect(copied).toContain("Current medications\n- ");
+  expect(copied).toContain("Psychosocial\n- ");
 });

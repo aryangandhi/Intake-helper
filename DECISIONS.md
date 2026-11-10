@@ -31,10 +31,10 @@ Where the brief was unclear, I chose the simplest option that keeps the demo wor
 ## Intake form
 - 10 patient sections, about 25 visible questions (more appear through conditional logic). Wording is a draft, marked "pending Health Sciences review" in the config file.
 - Added "What sex were you assigned at birth?" so the pregnancy / breastfeeding question can be conditional (the brief's gynecological example). Full gynecological history was left out to keep the form short.
-- Repeatable lists (medications, surgeries, family history) have a "none" checkbox, so "I don't take any medicines" counts as an answer and is not flagged.
+- Repeatable lists (medications, surgeries, family history) have a "none" checkbox, so "I don't take any medications" counts as an answer and is not flagged.
 - Required = every visible, non-optional question. Preferred name and the vitals are optional. Unanswered required questions are stored as `incompleteFields` and listed under Flagged / missing items.
 - Autosave runs about 1 second after each change. "Save and finish later" saves and returns to Questionnaires.
-- Read aloud: when the toggle is on, each question is read when you move into it, and each question gets a Listen button. The microphone appears only when the browser supports speech recognition (Chrome, Edge, Safari). A note reminds patients to check voice-entered medication names.
+- Read aloud: when the toggle is on, each question is read when you move into it, and each question gets a Listen button. The microphone uses the browser's speech recognition where it works (Chrome, Edge, Safari). In Brave, Firefox, or when that service fails, it records audio and sends it to `/api/transcribe` (OpenRouter, `TRANSCRIBE_MODEL`, needs `OPENROUTER_API_KEY`). A note reminds patients to check voice-entered medication names.
 - The patient portal uses an 18px base font and high-contrast colours.
 - The nurse / co-op PowerForm uses the same questions plus an optional "Vital signs (to be measured at visit)" section. If the patient had started the online form, the PowerForm is pre-filled with those answers. The language from a nurse-call request is pre-filled too.
 
@@ -60,3 +60,12 @@ Where the brief was unclear, I chose the simplest option that keeps the demo wor
 ## Reset
 - `seedDemo()` deletes all rows and re-inserts the seed data. It is used by `npm run setup`, `npm run reset`, the hub button and `POST /api/reset` (used by the tests). The hub button also clears all prototype login cookies.
 - Appointment dates are relative to the moment of reset (Jane: 6 days out at 10:00, so her email was "sent" yesterday).
+
+## v2 changes (team feedback, Nov 8 doc and Nov 9 call)
+- Sensory needs and health conditions are now a Yes / No question, then a pick list (checkboxes, not a dropdown, so older patients can see every choice at once) and an optional free-text box.
+- "Medicine" is now "medication" everywhere on the form.
+- Removed the substitute decision-maker questions (not legally binding on an intake form). The emergency contact question covers who to call. The advance care plan question stays, with an "i" button that explains what it is.
+- Mood questions now ask how often in the past month (Not at all / Several days / More than half the days / Nearly every day), like a PHQ-2.
+- "Demo: fill in randomly" on the patient form and the PowerForm fills every blank question with believable answers. Answers already typed are kept.
+- AI point-form summary has a "Copy all points" button. Copy buttons fall back to a non-clipboard-API copy when the page is opened over plain http (e.g. a second laptop on the same Wi-Fi).
+- The "Open MyConnectedCare" email button now redirects with a relative URL. Before, it redirected to localhost, which failed on a teammate's laptop through the Cloudflare tunnel.

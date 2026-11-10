@@ -59,7 +59,26 @@ export function FlagLink({ fieldId, children }: { fieldId: string; children: Rea
   );
 }
 
-export function CopyButton({ text, label }: { text: string; label: string }) {
+/** Copies text. Falls back to execCommand when the page is not on https (e.g. opened by IP on another laptop). */
+async function copyText(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {}
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  const ok = document.execCommand("copy");
+  ta.remove();
+  return ok;
+}
+
+export function CopyButton({ text, label, display = "Copy" }: { text: string; label: string; display?: string }) {
   return (
     <button
       type="button"
@@ -67,16 +86,15 @@ export function CopyButton({ text, label }: { text: string; label: string }) {
       aria-label={`Copy ${label}`}
       onClick={async (e) => {
         const btn = e.currentTarget;
-        try {
-          await navigator.clipboard.writeText(text);
+        if (await copyText(text)) {
           btn.dataset.copied = "1";
           setTimeout(() => delete btn.dataset.copied, 1500);
-        } catch {}
+        }
       }}
       className="group/c inline-flex items-center gap-1 rounded border border-gray-300 px-1.5 py-0.5 text-[11px] text-gray-700 hover:bg-gray-100 data-[copied]:border-green-600 data-[copied]:text-green-700"
     >
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
-      <span className="group-data-[copied]/c:hidden">Copy</span>
+      <span className="group-data-[copied]/c:hidden">{display}</span>
       <span className="hidden group-data-[copied]/c:inline">Copied</span>
     </button>
   );

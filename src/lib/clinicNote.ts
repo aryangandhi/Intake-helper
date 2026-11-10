@@ -25,7 +25,7 @@ export function noteFromRaw(get: (id: string) => string): NoteParts {
   const list = (s: string) => (s ? s.split("; ").map((x) => `- ${x}`).join("\n") : "");
   const lines = (pairs: [string, string][]) => pairs.filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join("\n");
   return {
-    medicalHistory: lines([["Reason for visit", get("mc_reason")], ["Health conditions", get("mh_conditions")], ["Surgeries / procedures", get("sx_list")]]),
+    medicalHistory: lines([["Reason for visit", get("mc_reason")], ["Health conditions", [get("mh_list"), get("mh_details")].filter(Boolean).join(". ")], ["Surgeries / procedures", get("sx_list")]]),
     currentMedications: list(get("med_list")),
     allergies: get("al_list") ? list(get("al_list")) : get("al_has") === "No" ? "No known allergies" : "",
     socialHistory: lines([["Tobacco", [get("ls_tobacco"), get("ls_tobacco_details")].filter(Boolean).join(", ")], ["Alcohol", get("ls_alcohol")], ["Living situation", get("ls_living")], ["Work / school", get("ls_work")]]),
