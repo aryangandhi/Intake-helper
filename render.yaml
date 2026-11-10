@@ -1,0 +1,24 @@
+# Free hosting on Render (https://render.com). In Render: New > Blueprint > pick this repo.
+# The free plan sleeps after ~15 minutes without visitors and wipes its disk when it restarts,
+# so the demo data is reloaded on every start. Open the site a minute before a demo to wake it up.
+services:
+  - type: web
+    name: intake-helper
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start:hosted
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        value: file:./dev.db
+      - key: DISABLE_LOGIN
+        value: "true"
+      - key: AI_MODEL
+        value: openai/gpt-4.1-mini
+      - key: TRANSCRIBE_MODEL
+        value: google/gemini-2.5-flash
+      - key: OPENROUTER_API_KEY
+        sync: false # Render asks you to paste it when you create the service
