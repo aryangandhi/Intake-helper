@@ -212,6 +212,90 @@ test("Demo reset restores seed data", async ({ page }) => {
   await expect(page.getByText("Demo data has been reset.")).toBeVisible();
 });
 
+test("Patient without a portal account can sign up and open their questionnaire", async ({ page }) => {
+  await page.goto("/myconnectedcare/login?mode=signup");
+  await page.getByLabel("Email").fill("robert.chen@example.com");
+  await page.getByLabel("Date of birth").fill("1960-11-21");
+  await page.getByLabel("Create a password").fill("robert-demo-password");
+  await page.getByLabel("Confirm password").fill("robert-demo-password");
+  await page.getByRole("button", { name: "Create account" }).click();
+
+  await expect(page.getByRole("heading", { name: "Hello, Robert" })).toBeVisible();
+  await page.getByRole("link", { name: /Questionnaires/ }).click();
+  await page.getByRole("link", { name: "Start Intake Form" }).click();
+  await expect(page.getByRole("heading", { name: "Oncology New Patient Intake" })).toBeVisible();
+});
+
+test("Patient can request a nurse call from inside the intake form", async ({ page, context }) => {
+  await page.goto("/myconnectedcare/login");
+  await loginWith(page, "jane.doe@example.com");
+  await page.getByRole("link", { name: /Questionnaires/ }).click();
+  await page.getByRole("link", { name: "Start Intake Form" }).click();
+  await page.getByRole("button", { name: /Need help\? Request a nurse call/ }).click();
+
+  await expect(page).toHaveURL(/\/intake-assistant\/request-help\?.*from=portal/);
+  await expect(page.getByLabel("Your full name")).toHaveValue("Jane Doe");
+  await expect(page.getByLabel("Date of birth")).toHaveValue("1967-03-14");
+  await expect(page.getByLabel("Phone number we should call")).toHaveValue("519-555-0101");
+  await page.getByLabel("Preferred language").fill("English");
+  await page.getByRole("radio", { name: "Morning (9 to 12)" }).check();
+  await page.getByRole("button", { name: "Request a nurse call" }).click();
+
+  await expect(page.getByRole("heading", { name: "Thanks. Your request has been sent." })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Back to MyConnectedCare" })).toBeVisible();
+
+  const ia = await context.newPage();
+  await ia.goto("/intake-assistant");
+  await loginWith(ia, "nurse@wrhn-demo.ca");
+  await expect(ia.getByRole("link", { name: "Nurse call requested: Jane Doe" })).toBeVisible();
+});
+
+test("Patient can use read-aloud and voice input controls", async ({ page }) => {
+  await page.addInitScript(() => {
+    const spoken: string[] = [];
+    (window as any).__spoken = spoken;
+    class FakeUtterance {
+      rate = 1;
+      lang = "";
+      constructor(public text: string) {}
+    }
+    class FakeRecognition {
+      onresult: ((event: any) => void) | null = null;
+      onend: (() => void) | null = null;
+      onerror: ((event: any) => void) | null = null;
+      start() {
+        setTimeout(() => {
+          this.onresult?.({ results: [[{ transcript: "Spoken by the test" }]] });
+          this.onend?.();
+        }, 0);
+      }
+      stop() {
+        this.onend?.();
+      }
+    }
+    Object.defineProperty(window, "SpeechSynthesisUtterance", { configurable: true, value: FakeUtterance });
+    Object.defineProperty(window, "speechSynthesis", {
+      configurable: true,
+      value: { cancel() {}, speak(utterance: FakeUtterance) { spoken.push(utterance.text); } },
+    });
+    Object.defineProperty(window, "SpeechRecognition", { configurable: true, value: FakeRecognition });
+  });
+
+  await page.goto("/myconnectedcare/login");
+  await loginWith(page, "jane.doe@example.com");
+  await page.getByRole("link", { name: /Questionnaires/ }).click();
+  await page.getByRole("link", { name: "Start Intake Form" }).click();
+
+  await page.getByRole("switch", { name: "Read questions aloud" }).check();
+  await page.getByRole("button", { name: /Read aloud: What name would you like us to call you/ }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).__spoken)).toContain("What name would you like us to call you?");
+
+  const mic = page.getByRole("button", { name: "Speak your answer for What name would you like us to call you?" });
+  await expect(mic).toBeVisible();
+  await mic.click();
+  await expect(page.locator("#in-ay_preferred_name")).toHaveValue("Spoken by the test");
+});
+
 test("Scenario 4: demo shortcuts (random fill on both forms, info button, copy all points)", async ({ page, context }) => {
   // Email button signs the patient in with a relative redirect (works through a tunnel / other laptop).
   const res = await page.request.get("/myconnectedcare/open?ref=missing", { maxRedirects: 0 });
