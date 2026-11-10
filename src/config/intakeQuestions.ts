@@ -36,10 +36,11 @@ export interface Question {
   type: QuestionType;
   example?: string;
   help?: string;
+  info?: string; // shown behind an "i" button next to the question, for terms many people don't know
   options?: string[];
   optionGroups?: { group: string; options: string[] }[];
   repeatFields?: RepeatField[];
-  noneLabel?: string; // for repeat lists: "I don't take any medicines"
+  noneLabel?: string; // for repeat lists: "I don't take any medications"
   showIf?: { id: string; equals: string | string[] };
   staffOnly?: boolean;
   optional?: boolean;
@@ -68,6 +69,8 @@ export const SUMMARY_HEADINGS: SummaryHeading[] = [
   "Advance care planning",
 ];
 
+const MOOD_OPTIONS = ["Not at all", "Several days", "More than half the days", "Nearly every day"];
+
 export const INTAKE_SECTIONS: Section[] = [
   {
     id: "about",
@@ -92,10 +95,36 @@ export const INTAKE_SECTIONS: Section[] = [
         options: ["Phone call", "Text message", "Email", "MyConnectedCare message"],
       },
       {
-        id: "ay_sensory",
-        label: "Do you have any trouble hearing, seeing, or other sensory needs? Do you use any devices?",
-        type: "longtext",
-        example: "Example: I wear hearing aids in both ears. I need large print.",
+        id: "ay_sensory_has",
+        label: "Do you have any trouble hearing, seeing, or other sensory needs?",
+        type: "yesno",
+        summaryHeading: "Functional status / symptoms",
+      },
+      {
+        id: "ay_sensory_list",
+        label: "Which of these apply to you? Choose all that apply.",
+        type: "multi",
+        options: [
+          "Trouble hearing",
+          "I use hearing aids",
+          "Trouble seeing",
+          "I need large print",
+          "Blind or low vision",
+          "Trouble speaking",
+          "Numbness or loss of feeling",
+          "I use a cane, walker or wheelchair",
+          "Something else",
+        ],
+        showIf: { id: "ay_sensory_has", equals: "Yes" },
+        summaryHeading: "Functional status / symptoms",
+      },
+      {
+        id: "ay_sensory_details",
+        label: "Anything else we should know about your sensory needs or devices?",
+        type: "text",
+        example: "Example: Hearing aids in both ears. Please face me when speaking.",
+        showIf: { id: "ay_sensory_has", equals: "Yes" },
+        optional: true,
         voice: true,
         summaryHeading: "Functional status / symptoms",
       },
@@ -167,7 +196,7 @@ export const INTAKE_SECTIONS: Section[] = [
     id: "allergies",
     title: "Allergies",
     questions: [
-      { id: "al_has", label: "Do you have any allergies (to medicines, foods, latex or anything else)?", type: "yesno", summaryHeading: "Allergies" },
+      { id: "al_has", label: "Do you have any allergies (to medications, foods, latex or anything else)?", type: "yesno", summaryHeading: "Allergies" },
       {
         id: "al_list",
         label: "What are you allergic to, and what happens?",
@@ -188,15 +217,15 @@ export const INTAKE_SECTIONS: Section[] = [
     questions: [
       {
         id: "med_list",
-        label: "List all the medicines you take, including vitamins and over-the-counter medicines.",
+        label: "List all the medications you take, including vitamins and over-the-counter medications.",
         type: "repeat",
         repeatFields: [
-          { id: "name", label: "Medicine name", example: "Example: Metformin" },
+          { id: "name", label: "Medication name", example: "Example: Metformin" },
           { id: "dose", label: "Dose", example: "Example: 500 mg" },
           { id: "frequency", label: "How often", example: "Example: twice a day" },
         ],
-        noneLabel: "I don't take any medicines",
-        help: "If you used the microphone, please check the medicine names. Voice typing can get medicine names wrong.",
+        noneLabel: "I don't take any medications",
+        help: "If you used the microphone, please check the medicine names. Voice typing can get medication names wrong.",
         summaryHeading: "Current medications",
       },
     ],
@@ -206,10 +235,40 @@ export const INTAKE_SECTIONS: Section[] = [
     title: "Medical history",
     questions: [
       {
-        id: "mh_conditions",
-        label: "What health conditions do you have now, or have you had in the past?",
+        id: "mh_has",
+        label: "Do you have any health conditions now, or have you had any in the past?",
+        type: "yesno",
+        summaryHeading: "Medical history",
+      },
+      {
+        id: "mh_list",
+        label: "Which health conditions do you have, or have you had? Choose all that apply.",
+        type: "multi",
+        options: [
+          "High blood pressure",
+          "High cholesterol",
+          "Diabetes",
+          "Heart disease or heart attack",
+          "Stroke",
+          "Asthma or COPD",
+          "Kidney disease",
+          "Liver disease",
+          "Thyroid problems",
+          "Arthritis",
+          "Depression or anxiety",
+          "A previous cancer",
+          "Something else",
+        ],
+        showIf: { id: "mh_has", equals: "Yes" },
+        summaryHeading: "Medical history",
+      },
+      {
+        id: "mh_details",
+        label: "Tell us more, such as when each condition started, or any condition not on the list.",
         type: "longtext",
-        example: "Example: Type 2 diabetes since 2015. High blood pressure. Asthma as a child.",
+        example: "Example: Type 2 diabetes since 2015. Asthma as a child.",
+        showIf: { id: "mh_has", equals: "Yes" },
+        optional: true,
         voice: true,
         summaryHeading: "Medical history",
       },
@@ -278,18 +337,16 @@ export const INTAKE_SECTIONS: Section[] = [
   {
     id: "planning",
     title: "Planning ahead",
-    intro: "An advance care plan is a way to share your wishes about future health care, in case you can't speak for yourself.",
     questions: [
-      { id: "acp_has", label: "Do you have an advance care plan?", type: "single", options: ["Yes", "No", "Not sure"], summaryHeading: "Advance care planning" },
       {
-        id: "acp_sdm_name",
-        label: "Who would make health decisions for you if you could not? (substitute decision-maker)",
-        type: "text",
-        example: "Example: John Doe",
-        voice: true,
+        id: "acp_has",
+        label: "Do you have an advance care plan?",
+        type: "single",
+        options: ["Yes", "No", "Not sure"],
+        info:
+          "An advance care plan is a record of your wishes for future health care, in case you become too sick to speak for yourself. It can be written down or shared with family and your care team. Many people do not have one yet, and that is okay. Your care team can talk with you about it.",
         summaryHeading: "Advance care planning",
       },
-      { id: "acp_sdm_relationship", label: "How is this person related to you?", type: "text", example: "Example: Husband", voice: true, summaryHeading: "Advance care planning" },
     ],
   },
   {
@@ -298,24 +355,33 @@ export const INTAKE_SECTIONS: Section[] = [
     questions: [
       {
         id: "mood_down",
-        label: "In the past 12 months, was there a time of at least 2 weeks when you felt sad, blue, depressed or down most of the time?",
-        type: "yesno",
+        label: "In the past month, how often have you felt sad, blue, depressed or down?",
+        type: "single",
+        options: MOOD_OPTIONS,
         summaryHeading: "Psychosocial",
       },
       {
         id: "mood_interest",
-        label: "In the past 12 months, was there a time of at least 2 weeks when you didn't care about or enjoy the things you usually do?",
-        type: "yesno",
+        label: "In the past month, how often have you had little interest or enjoyment in the things you usually do?",
+        type: "single",
+        options: MOOD_OPTIONS,
         summaryHeading: "Psychosocial",
       },
     ],
   },
   {
     id: "contacts",
-    title: "Care partner and pharmacy",
+    title: "Emergency contact and pharmacy",
     questions: [
-      { id: "cp_name", label: "Care partner's name (someone who helps you and can come to appointments)", type: "text", example: "Example: John Doe (husband)", voice: true, summaryHeading: "Social history" },
-      { id: "cp_phone", label: "Care partner's phone number", type: "text", example: "Example: 519-555-0142" },
+      {
+        id: "cp_name",
+        label: "Emergency contact or care partner's name, and how they are related to you",
+        type: "text",
+        example: "Example: John Doe (husband)",
+        voice: true,
+        summaryHeading: "Social history",
+      },
+      { id: "cp_phone", label: "Emergency contact's phone number", type: "text", example: "Example: 519-555-0142" },
       { id: "ph_name", label: "Your main pharmacy's name and location", type: "text", example: "Example: Shoppers Drug Mart, King St. Waterloo", voice: true },
       { id: "ph_phone", label: "Your pharmacy's phone number", type: "text", example: "Example: 519-555-0199" },
     ],

@@ -34,6 +34,7 @@ export default async function DocumentView({ params }: { params: Promise<{ id: s
   const isCoop = sub.completedBy === "coop_student";
 
   const plainSection = (heading: string) => (summary?.sections.find((s) => s.heading === heading)?.bullets || []).map((b) => `- ${b.text}`).join("\n");
+  const allPoints = (summary?.sections || []).map((s) => `${s.heading}\n${plainSection(s.heading)}`).join("\n\n");
   const flagged = summary ? summary.flagged : incomplete.map((f) => ({ field_id: f, note: `Not answered: ${getQuestion(f)?.label || f}` }));
 
   return (
@@ -104,7 +105,10 @@ export default async function DocumentView({ params }: { params: Promise<{ id: s
                   </p>
                 </section>
                 <section className="border-b border-gray-200 px-4 py-3" aria-labelledby="ai-points">
-                  <h2 id="ai-points" className="text-sm font-bold uppercase tracking-wide text-emr-800">AI Summary (point form)</h2>
+                  <div className="flex items-center justify-between">
+                    <h2 id="ai-points" className="text-sm font-bold uppercase tracking-wide text-emr-800">AI Summary (point form)</h2>
+                    <CopyButton label="all points" text={allPoints} display="Copy all points" />
+                  </div>
                   <div className="mt-2 grid gap-x-8 gap-y-3 lg:grid-cols-2">
                     {summary.sections.map((sec) => (
                       <div key={sec.heading}>

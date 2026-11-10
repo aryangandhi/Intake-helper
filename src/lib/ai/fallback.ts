@@ -5,7 +5,9 @@ import type { ModelSummary } from "./schema";
 // Short labels used in template bullets.
 const SHORT: Record<string, string> = {
   ay_pregnancy: "Pregnancy / breastfeeding",
-  ay_sensory: "Sensory needs",
+  ay_sensory_has: "Sensory needs",
+  ay_sensory_list: "Sensory needs",
+  ay_sensory_details: "Sensory needs (details)",
   ay_caregiver: "Primary caregiver for someone else",
   ay_caregiver_arrangements: "Care arrangements made",
   ay_trial: "In a clinical trial",
@@ -18,7 +20,9 @@ const SHORT: Record<string, string> = {
   al_has: "Has allergies",
   al_list: "Allergies",
   med_list: "Medications",
-  mh_conditions: "Health conditions",
+  mh_has: "Has health conditions",
+  mh_list: "Health conditions",
+  mh_details: "Health conditions (details)",
   sx_list: "Surgeries / procedures",
   fh_list: "Family history",
   ls_tobacco: "Tobacco",
@@ -27,11 +31,9 @@ const SHORT: Record<string, string> = {
   ls_living: "Living situation",
   ls_work: "Work / school",
   acp_has: "Advance care plan",
-  acp_sdm_name: "Substitute decision-maker",
-  acp_sdm_relationship: "SDM relationship",
-  mood_down: "Low mood for 2+ weeks in past 12 months",
-  mood_interest: "Loss of interest for 2+ weeks in past 12 months",
-  cp_name: "Care partner",
+  mood_down: "Felt down or depressed in past month",
+  mood_interest: "Little interest or enjoyment in past month",
+  cp_name: "Emergency contact / care partner",
 };
 
 /** Deterministic summary built straight from the answers (used when AI is unavailable). */
@@ -47,7 +49,10 @@ export function buildTemplateSummary(items: RawItem[], incomplete: string[]): Mo
     citations: ["pt_name", "pt_age", "pt_provider_group", ...(sex === "Female" || sex === "Male" ? ["ay_sex"] : [])],
   });
   if (a.get("mc_reason")) paragraph.push({ text: `In the patient's words: "${a.get("mc_reason")}"`, citations: ["mc_reason"] });
-  if (a.get("mh_conditions")) paragraph.push({ text: `Reported health conditions: ${a.get("mh_conditions")}`, citations: ["mh_conditions"] });
+  if (a.get("mh_list") || a.get("mh_details")) {
+    const parts = [a.get("mh_list"), a.get("mh_details")].filter(Boolean).join(". ");
+    paragraph.push({ text: `Reported health conditions: ${parts}`, citations: [...(a.get("mh_list") ? ["mh_list"] : []), ...(a.get("mh_details") ? ["mh_details"] : [])] });
+  } else if (a.get("mh_has") === "No") paragraph.push({ text: "No health conditions reported.", citations: ["mh_has"] });
   if (a.get("mc_pain") === "Yes") {
     const loc = a.get("mc_pain_location");
     const score = a.get("mc_pain_score");
@@ -65,6 +70,8 @@ export function buildTemplateSummary(items: RawItem[], incomplete: string[]): Mo
     const ans = a.get(q.id);
     if (!ans || !q.summaryHeading) continue;
     if (q.id === "al_has" && a.get("al_list")) continue;
+    if (q.id === "mh_has" && (a.get("mh_list") || a.get("mh_details"))) continue;
+    if (q.id === "ay_sensory_has" && (a.get("ay_sensory_list") || a.get("ay_sensory_details"))) continue;
     const list = byHeading.get(q.summaryHeading) || [];
     list.push({ text: `${SHORT[q.id] || q.label}: ${ans}`, citations: [q.id] });
     byHeading.set(q.summaryHeading, list);

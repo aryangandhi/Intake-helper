@@ -2,7 +2,8 @@
 import { useState, useTransition } from "react";
 import type { Section } from "@/config/intakeQuestions";
 import { isAnswered, isVisible, type AnswerValue, type Answers } from "@/lib/answers";
-import { QuestionInput } from "./QuestionInput";
+import { randomAnswers } from "@/lib/randomFill";
+import { InfoButton, QuestionInput } from "./QuestionInput";
 
 export type PowerFormAction = { id: string; label: string; primary?: boolean; needsComment?: boolean };
 
@@ -34,6 +35,16 @@ export function PowerForm({
       className="space-y-3"
       aria-label="PowerForm: Oncology New Patient Intake"
     >
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => setAnswers((a) => randomAnswers(sections, a))}
+          title="Demo only: fills every blank field with random answers"
+          className="rounded border border-dashed border-slate-500 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+        >
+          Demo: fill in randomly
+        </button>
+      </div>
       <div className="grid gap-3 xl:grid-cols-2">
         {sections.map((s) => (
           <fieldset key={s.id} className={`rounded border border-slate-300 bg-white ${s.id === "concern" ? "xl:col-span-2" : ""}`}>
@@ -45,6 +56,7 @@ export function PowerForm({
                   <div key={q.id} id={`q-${q.id}`} className="grid gap-1 py-1.5 sm:grid-cols-[minmax(10rem,40%)_1fr] sm:gap-3">
                     <label id={`lbl-${q.id}`} htmlFor={`in-${q.id}`} className="pt-1 text-xs font-medium leading-snug text-slate-700">
                       {q.label}
+                      <InfoButton q={q} dense />
                     </label>
                     <QuestionInput q={q} value={answers[q.id]} onChange={(v) => set(q.id, v)} dense />
                   </div>

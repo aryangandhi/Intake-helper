@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Question, Section } from "@/config/intakeQuestions";
 import { isAnswered, isVisible, type AnswerValue, type Answers } from "@/lib/answers";
-import { QuestionInput, speak, useSpeechRecognitionSupported } from "./QuestionInput";
+import { randomAnswers } from "@/lib/randomFill";
+import { InfoButton, QuestionInput, speak, useSpeechRecognitionSupported } from "./QuestionInput";
 
 export function PatientIntakeForm({
   sections,
@@ -104,6 +105,13 @@ export function PatientIntakeForm({
     router.push(`/intake-assistant/request-help?ref=${referralId}&from=portal`);
   };
 
+  const fillRandomly = () => {
+    dirty.current = true;
+    setSaveState("idle");
+    setAnswers((a) => randomAnswers(sections, a));
+    setStep(sections.length);
+  };
+
   const section = sections[step];
 
   return (
@@ -137,9 +145,19 @@ export function PatientIntakeForm({
 
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="text-base font-semibold text-mcc-800">Oncology New Patient Intake</p>
-        <Link href="/myconnectedcare/example" target="_blank" className="text-base text-mcc-700 underline">
-          See an example of a completed form
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={fillRandomly}
+            title="Demo only: fills every blank question with random answers"
+            className="rounded-md border-2 border-dashed border-gray-500 px-3 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-100"
+          >
+            Demo: fill in randomly
+          </button>
+          <Link href="/myconnectedcare/example" target="_blank" className="text-base text-mcc-700 underline">
+            See an example of a completed form
+          </Link>
+        </div>
       </div>
 
       {/* Progress */}
@@ -198,6 +216,7 @@ export function PatientIntakeForm({
                       <label id={`lbl-${q.id}`} htmlFor={`in-${q.id}`} className="block text-xl font-semibold text-gray-900">
                         {q.label}
                         {q.optional && <span className="ml-2 text-base font-normal text-gray-700">(optional)</span>}
+                        <InfoButton q={q} onOpen={(t) => readAloud && speak(t)} />
                       </label>
                       {readAloud && (
                         <button type="button" onClick={() => speak(`${q.label}. ${q.example || ""}`)} className="shrink-0 rounded-md border border-gray-400 px-2 py-1 text-base" aria-label={`Read aloud: ${q.label}`}>
