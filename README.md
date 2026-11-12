@@ -78,7 +78,7 @@ Close the other tabs (or reload them) after a reset.
 
 ```bash
 npm test             # unit tests for the citation validator
-npm run test:e2e     # Playwright: Scenarios 1 to 3 and reset (starts the dev server if needed)
+npm run test:e2e     # Playwright: main scenarios, signup, nurse-call paths, voice controls, demo shortcuts and reset
 ```
 
 First time only, Playwright needs a browser: `npx playwright install chromium`. The e2e tests reset the demo data.
